@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>YT Queue</title>
+</head>
+<body>
+  <h2>YouTube Channel Queue</h2>
+
+  <textarea id="input" rows="10" style="width:100%" placeholder="paste link per baris"></textarea>
+
+  <br><br>
+
+  <button onclick="addLinks()">Tambah</button>
+  <button onclick="startQueue()">START</button>
+  <button onclick="openNext()">NEXT</button>
+  <button onclick="clearQueue()">CLEAR</button>
+
+  <h3>Queue</h3>
+  <ul id="list"></ul>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
