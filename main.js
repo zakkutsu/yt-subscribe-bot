@@ -28,6 +28,10 @@ ipcMain.handle('open-link', (_, url) => {
       width: 1200,
       height: 800
     })
+
+    ytWindow.on('closed', () => {
+      ytWindow = null
+    })
   }
 
   ytWindow.loadURL(url)

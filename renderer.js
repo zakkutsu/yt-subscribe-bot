@@ -76,8 +76,27 @@ function stopQueue() {
   }
 }
 
+function restartQueue() {
+  // reset dari awal
+  index = 0
+
+  // stop dulu kalau lagi jalan
+  if (timer) {
+    clearTimeout(timer)
+    timer = null
+  }
+
+  // mulai lagi dari awal
+  startQueue()
+}
+
+function resetIndex() {
+  index = 0
+  render()
+}
+
 function randomDelay() {
-  return Math.floor(Math.random() * (6000 - 3000)) + 3000
+  return Math.floor(Math.random() * (7000 - 4000)) + 4000
 }
 
 init()
