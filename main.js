@@ -19,6 +19,8 @@ function createWindow() {
   mainWindow.loadFile('index.html')
 }
 
+app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
+
 app.whenReady().then(createWindow)
 
 ipcMain.handle('debug-log', (_, payload) => {
@@ -40,6 +42,11 @@ ipcMain.handle('open-link', async (_, url) => {
       width: 1200,
       height: 800
     })
+
+    // Stealth: Remove Electron and App specific User-Agent fingerprint
+    const defaultUA = ytWindow.webContents.getUserAgent()
+    const stealthUA = defaultUA.replace(/Electron\/[0-9\.]+ /, '').replace(/yt-queue\/[0-9\.]+ /, '')
+    ytWindow.webContents.setUserAgent(stealthUA)
 
     ytWindow.webContents.on('console-message', (_, level, message, line, sourceId) => {
       console.log(`[yt console] level=${level} line=${line} source=${sourceId} message=${message}`)
@@ -311,6 +318,19 @@ ipcMain.handle('auto-subscribe', async () => {
 
         // Wait for page load a bit (human slower)
         await new Promise(r => setTimeout(r, 2000))
+
+        // --- RANDOM SCROLL BEHAVIOR ---
+        // Simulate human looking at the page before subscribing
+        const scrollCount = Math.floor(Math.random() * 3) + 1 // 1 to 3 scrolls
+        for (let i = 0; i < scrollCount; i++) {
+            // Random scroll down
+            window.scrollBy({ top: (Math.random() * 500 + 100), behavior: 'smooth' })
+            await new Promise(r => setTimeout(r, 800 + Math.random() * 1500))
+        }
+        // Scroll back up to simulate finding the button
+        window.scrollBy({ top: -(Math.random() * 300 + 100), behavior: 'smooth' })
+        await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000))
+        // ------------------------------
 
         // Find subscribe button
         const subBtnResult = findSubscribeButton()
