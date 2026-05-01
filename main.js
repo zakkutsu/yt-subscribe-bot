@@ -116,7 +116,8 @@ ipcMain.handle('check-subscribe', async () => {
             label === 'subscribe' ||
             label === 'subscribed' ||
             label === 'unsubscribe' ||
-            label.startsWith('subscribe to ')
+            label.startsWith('subscribe to ') ||
+            label.startsWith('unsubscribe from ')
         }
 
         const dumpElement = (el) => ({
@@ -141,20 +142,35 @@ ipcMain.handle('check-subscribe', async () => {
             }).slice(0, 30).map(dumpElement) }
           }
 
-          return { found: matched, dump: [dumpElement(matched)] }
+          const getClickable = (el) => {
+            let curr = el
+            while (curr && curr !== document.body && curr !== document) {
+              if (curr.tagName === 'BUTTON' || curr.tagName === 'A' || (curr.getAttribute && curr.getAttribute('role') === 'button') || curr.tagName === 'YT-BUTTON-SHAPE') {
+                return curr
+              }
+              if (curr.className && typeof curr.className === 'string' && curr.className.includes('yt-spec-button-shape-next')) {
+                return curr
+              }
+              curr = curr.parentNode || curr.host
+            }
+            return el
+          }
+
+          const clickable = getClickable(matched)
+          return { found: clickable, matched: matched, dump: [dumpElement(clickable), dumpElement(matched)] }
         }
 
         const isSubscribedButton = (btn) => {
           if (!btn) return false
           const text = (btn.textContent || '').trim().toLowerCase()
-          const label = (btn.getAttribute('aria-label') || '').trim().toLowerCase()
-          const pressed = btn.getAttribute('aria-pressed')
+          const label = (btn.getAttribute && btn.getAttribute('aria-label') || '').trim().toLowerCase()
+          const pressed = btn.getAttribute && btn.getAttribute('aria-pressed')
           const className = typeof btn.className === 'string' ? btn.className.toLowerCase() : ''
 
           if (className.includes('yt-icon-button')) return false
           if (!text && !label) return false
 
-          return pressed === 'true' || text === 'subscribed' || text === 'unsubscribe' || label === 'subscribed' || label === 'unsubscribe'
+          return pressed === 'true' || text === 'subscribed' || text === 'unsubscribe' || label === 'subscribed' || label === 'unsubscribe' || label.startsWith('unsubscribe from ')
         }
 
         // Tunggu page load
@@ -262,118 +278,39 @@ ipcMain.handle('auto-subscribe', async () => {
             }).slice(0, 30).map(dumpElement) }
           }
 
-          return { found: matched, dump: [dumpElement(matched)] }
+          const getClickable = (el) => {
+            let curr = el
+            while (curr && curr !== document.body && curr !== document) {
+              if (curr.tagName === 'BUTTON' || curr.tagName === 'A' || (curr.getAttribute && curr.getAttribute('role') === 'button') || curr.tagName === 'YT-BUTTON-SHAPE') {
+                return curr
+              }
+              if (curr.className && typeof curr.className === 'string' && curr.className.includes('yt-spec-button-shape-next')) {
+                return curr
+              }
+              curr = curr.parentNode || curr.host
+            }
+            return el
+          }
+
+          const clickable = getClickable(matched)
+          return { found: clickable, matched: matched, dump: [dumpElement(clickable), dumpElement(matched)] }
         }
 
         const isSubscribedButton = (btn) => {
           if (!btn) return false
           const text = (btn.textContent || '').trim().toLowerCase()
-          const label = (btn.getAttribute('aria-label') || '').trim().toLowerCase()
-          const pressed = btn.getAttribute('aria-pressed')
+          const label = (btn.getAttribute && btn.getAttribute('aria-label') || '').trim().toLowerCase()
+          const pressed = btn.getAttribute && btn.getAttribute('aria-pressed')
           const className = typeof btn.className === 'string' ? btn.className.toLowerCase() : ''
 
           if (className.includes('yt-icon-button')) return false
           if (!text && !label) return false
 
-          return pressed === 'true' || text === 'subscribed' || text === 'unsubscribe' || label === 'subscribed' || label === 'unsubscribe'
-        }
-
-        // Utilities
-        const rand = (a, b) => Math.random() * (b - a) + a
-        const gauss = (() => {
-          // Box-Muller transform
-          let spare = null
-          return () => {
-            if (spare !== null) { const val = spare; spare = null; return val }
-            let u = 0, v = 0
-            while (u === 0) u = Math.random()
-            while (v === 0) v = Math.random()
-            const mag = Math.sqrt(-2.0 * Math.log(u))
-            spare = mag * Math.sin(2.0 * Math.PI * v)
-            return mag * Math.cos(2.0 * Math.PI * v)
-          }
-        })()
-
-        // Cubic bezier helpers
-        const cubic = (t, p0, p1, p2, p3) => {
-          const u = 1 - t
-          return u*u*u*p0 + 3*u*u*t*p1 + 3*u*t*t*p2 + t*t*t*p3
-        }
-        const pointOnCubic = (t, sx, sy, c1x, c1y, c2x, c2y, ex, ey) => ({
-          x: cubic(t, sx, c1x, c2x, ex),
-          y: cubic(t, sy, c1y, c2y, ey)
-        })
-        const generateControlPoints = (sx, sy, ex, ey) => {
-          const dx = ex - sx, dy = ey - sy
-          const dist = Math.hypot(dx, dy) || 1
-          const angle = Math.atan2(dy, dx)
-          const spread = Math.min(0.8, dist / 300)
-          const c1angle = angle + rand(-0.8, 0.8)
-          const c2angle = angle + rand(-0.8, 0.8)
-          const c1dist = dist * rand(0.15, 0.6)
-          const c2dist = dist * rand(0.15, 0.6)
-          return {
-            c1x: sx + Math.cos(c1angle) * c1dist,
-            c1y: sy + Math.sin(c1angle) * c1dist,
-            c2x: sx + Math.cos(c2angle) * (dist - c2dist),
-            c2y: sy + Math.sin(c2angle) * (dist - c2dist)
-          }
-        }
-
-        // Human-like move function using randomized cubic bezier path,
-        // variable speed profile, micro-jitter, occasional overshoot/correction.
-        const moveMouse = async (sx, sy, ex, ey, duration = 800) => {
-          const cp = generateControlPoints(sx, sy, ex, ey)
-          const steps = Math.max(12, Math.floor(duration / 12))
-
-          for (let i = 0; i < steps; i++) {
-            const progress = (i + 1) / steps
-            // speed profile: easeInOut combined with slight randomness
-            const ease = progress < 0.5 ? 2*progress*progress : -1 + (4 - 2*progress)*progress
-            const jitter = Math.sin(progress * Math.PI) * rand(-0.08, 0.08)
-            const t = Math.max(0, Math.min(1, ease + jitter))
-
-            const p = pointOnCubic(t, sx, sy, cp.c1x, cp.c1y, cp.c2x, cp.c2y, ex, ey)
-            // micro-jitter and small Gaussian noise
-            const mx = p.x + gauss() * rand(0.2, 2.2)
-            const my = p.y + gauss() * rand(0.2, 2.2)
-
-            const ev = new MouseEvent('mousemove', {
-              bubbles: true,
-              clientX: Math.round(mx),
-              clientY: Math.round(my),
-              screenX: Math.round(mx),
-              screenY: Math.round(my)
-            })
-            document.elementFromPoint(Math.round(mx), Math.round(my))?.dispatchEvent(ev)
-
-            // variable interval: faster in middle, slower at ends
-            const base = duration / steps
-            const speedFactor = 0.6 + 0.8 * Math.abs(0.5 - progress)
-            const wait = Math.max(8, Math.round(base * (rand(0.6, 1.4)) * speedFactor))
-            await new Promise(r => setTimeout(r, wait))
-          }
-
-          // small settling moves (tiny shakes)
-          for (let k = 0; k < 3; k++) {
-            const sxn = ex + gauss() * rand(0.2, 1.2)
-            const syn = ey + gauss() * rand(0.2, 1.2)
-            const ev2 = new MouseEvent('mousemove', { bubbles: true, clientX: Math.round(sxn), clientY: Math.round(syn) })
-            document.elementFromPoint(Math.round(sxn), Math.round(syn))?.dispatchEvent(ev2)
-            await new Promise(r => setTimeout(r, Math.round(rand(25, 120))))
-          }
-        }
-
-        // Human-like random delay generator: mixture distribution for variability
-        const randomDelay = (min, max) => {
-          const r = Math.random()
-          if (r < 0.55) return Math.round(min + Math.pow(Math.random(), 2) * (max - min))
-          if (r < 0.9) return Math.round(min + Math.random() * (max - min))
-          return Math.round(min + Math.pow(Math.random(), 0.5) * (max - min))
+          return pressed === 'true' || text === 'subscribed' || text === 'unsubscribe' || label === 'subscribed' || label === 'unsubscribe' || label.startsWith('unsubscribe from ')
         }
 
         // Wait for page load a bit (human slower)
-        await new Promise(r => setTimeout(r, randomDelay(1200, 2600)))
+        await new Promise(r => setTimeout(r, 2000))
 
         // Find subscribe button
         const subBtnResult = findSubscribeButton()
@@ -382,61 +319,148 @@ ipcMain.handle('auto-subscribe', async () => {
         }
         const subBtn = subBtnResult && subBtnResult.found ? subBtnResult.found : null
         if (!subBtn) {
-          return { success: false, message: 'Subscribe button not found' }
+          return { status: 'not_found', message: 'Subscribe button not found' }
         }
 
         // Check if already subscribed
         const alreadySubscribed = isSubscribedButton(subBtn)
         if (alreadySubscribed) {
-          return { success: false, message: 'Already subscribed' }
+          return { status: 'already_subscribed', message: 'Already subscribed' }
         }
 
-        // Compute button center with small jitter
+        // Compute button center
         const rect = subBtn.getBoundingClientRect()
-        const btnX = rect.left + rect.width / 2 + rand(-10, 10)
-        const btnY = rect.top + rect.height / 2 + rand(-6, 6)
+        // Ensure element is visible
+        if (rect.width === 0 || rect.height === 0) {
+            // Try scrolling to it
+            subBtn.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            await new Promise(r => setTimeout(r, 1000))
+            const newRect = subBtn.getBoundingClientRect()
+            return {
+              status: 'ready',
+              rect: { left: newRect.left, top: newRect.top, width: newRect.width, height: newRect.height }
+            }
+        }
 
-        // Randomized start (some distance away)
-        const startX = rand(0, window.innerWidth)
-        const startY = rand(0, window.innerHeight)
-
-        // Move mouse in human-like path
-        await moveMouse(startX, startY, btnX, btnY, 600 + rand(-250, 900))
-
-        // Pause before hover
-        await new Promise(r => setTimeout(r, randomDelay(180, 900)))
-
-        // Dispatch hover
-        subBtn.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, clientX: Math.round(btnX), clientY: Math.round(btnY) }))
-        await new Promise(r => setTimeout(r, randomDelay(150, 900)))
-
-        // Occasional hesitation
-        if (Math.random() < 0.6) await new Promise(r => setTimeout(r, randomDelay(350, 1600)))
-
-        // Press with realistic press duration
-        const pressDuration = Math.round(rand(30, 260))
-        subBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: Math.round(btnX), clientY: Math.round(btnY) }))
-        await new Promise(r => setTimeout(r, pressDuration))
-        subBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: Math.round(btnX), clientY: Math.round(btnY) }))
-        subBtn.click()
-
-        // Wait to observe result
-        await new Promise(r => setTimeout(r, randomDelay(900, 2800)))
-
-        const refreshedBtn = findSubscribeButton().found || subBtn
-        const isNowSubscribed = isSubscribedButton(refreshedBtn)
-        return { success: isNowSubscribed, message: isNowSubscribed ? 'Successfully subscribed! ✓' : 'Subscription may have failed', dump: isNowSubscribed ? [
-          {
-            text: (refreshedBtn.textContent || '').trim().slice(0, 120),
-            ariaLabel: (refreshedBtn.getAttribute('aria-label') || '').trim(),
-            ariaPressed: refreshedBtn.getAttribute('aria-pressed'),
-            tag: refreshedBtn.tagName,
-            role: refreshedBtn.getAttribute('role'),
-            className: typeof refreshedBtn.className === 'string' ? refreshedBtn.className : ''
-          }
-        ] : [] }
+        return {
+          status: 'ready',
+          rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+        }
       })()
     `)
+
+    if (result.status === 'not_found') return { success: false, message: result.message }
+    if (result.status === 'already_subscribed') return { success: false, message: result.message }
+
+    if (result.status === 'ready' && result.rect) {
+        const { left, top, width, height } = result.rect
+        const btnX = left + width / 2 + (Math.random() * 10 - 5)
+        const btnY = top + height / 2 + (Math.random() * 6 - 3)
+
+        // Human-like move function using sendInputEvent
+        const moveMouseHardware = async (sx, sy, ex, ey, duration = 800) => {
+            const steps = Math.max(12, Math.floor(duration / 12))
+            for (let i = 0; i < steps; i++) {
+                const progress = (i + 1) / steps
+                const ease = progress < 0.5 ? 2*progress*progress : -1 + (4 - 2*progress)*progress
+                
+                const mx = sx + (ex - sx) * ease + (Math.random() * 4 - 2)
+                const my = sy + (ey - sy) * ease + (Math.random() * 4 - 2)
+
+                ytWindow.webContents.sendInputEvent({ type: 'mouseMove', x: Math.round(mx), y: Math.round(my) })
+                
+                const wait = Math.max(8, Math.round((duration / steps) * (0.8 + Math.random() * 0.4)))
+                await new Promise(r => setTimeout(r, wait))
+            }
+        }
+
+        const startX = Math.random() * 800
+        const startY = Math.random() * 600
+
+        await moveMouseHardware(startX, startY, btnX, btnY, 600 + Math.random() * 300)
+        await new Promise(r => setTimeout(r, 200 + Math.random() * 500))
+
+        // Click!
+        ytWindow.webContents.sendInputEvent({ type: 'mouseDown', x: Math.round(btnX), y: Math.round(btnY), button: 'left', clickCount: 1 })
+        await new Promise(r => setTimeout(r, 50 + Math.random() * 150))
+        ytWindow.webContents.sendInputEvent({ type: 'mouseUp', x: Math.round(btnX), y: Math.round(btnY), button: 'left', clickCount: 1 })
+
+        // Wait for result
+        await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000))
+
+        // Check result
+        const checkResult = await ytWindow.webContents.executeJavaScript(`
+            (async () => {
+                const isSubscribedButton = (btn) => {
+                    if (!btn) return false
+                    const text = (btn.textContent || '').trim().toLowerCase()
+                    const label = (btn.getAttribute && btn.getAttribute('aria-label') || '').trim().toLowerCase()
+                    const pressed = btn.getAttribute && btn.getAttribute('aria-pressed')
+                    
+                    if (typeof btn.className === 'string' && btn.className.toLowerCase().includes('yt-icon-button')) return false
+                    if (!text && !label) return false
+
+                    return pressed === 'true' || text === 'subscribed' || text === 'unsubscribe' || label === 'subscribed' || label === 'unsubscribe' || label.startsWith('unsubscribe from ')
+                }
+
+                // We try to find the button again using the same logic to check if it's subscribed
+                const walk = (node, output) => {
+                    if (!node || output.length >= 2000) return
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        output.push(node)
+                        if (node.shadowRoot) walk(node.shadowRoot, output)
+                    }
+                    const children = node.children || []
+                    for (const child of children) {
+                        walk(child, output)
+                        if (output.length >= 2000) return
+                    }
+                }
+                const nodes = []
+                walk(document.body, nodes)
+
+                const isSubscribeLike = (el) => {
+                    if (!el) return false
+                    const text = (el.textContent || '').trim().toLowerCase()
+                    const label = (el.getAttribute && (el.getAttribute('aria-label') || '')).trim().toLowerCase()
+                    const pressed = el.getAttribute && el.getAttribute('aria-pressed')
+                    const className = typeof el.className === 'string' ? el.className.toLowerCase() : ''
+
+                    if (className.includes('yt-icon-button')) return false
+                    if (!text && !label) return false
+
+                    return pressed === 'true' ||
+                        text === 'subscribe' ||
+                        text === 'subscribed' ||
+                        text === 'unsubscribe' ||
+                        label === 'subscribe' ||
+                        label === 'subscribed' ||
+                        label === 'unsubscribe' ||
+                        label.startsWith('subscribe to ') ||
+                        label.startsWith('unsubscribe from ')
+                }
+
+                const matched = nodes.find(isSubscribeLike)
+                const getClickable = (el) => {
+                    let curr = el
+                    while (curr && curr !== document.body && curr !== document) {
+                        if (curr.tagName === 'BUTTON' || curr.tagName === 'A' || (curr.getAttribute && curr.getAttribute('role') === 'button') || curr.tagName === 'YT-BUTTON-SHAPE') {
+                            return curr
+                        }
+                        if (curr.className && typeof curr.className === 'string' && curr.className.includes('yt-spec-button-shape-next')) return curr
+                        curr = curr.parentNode || curr.host
+                    }
+                    return el
+                }
+                
+                const btn = matched ? getClickable(matched) : null
+                const isNowSubscribed = isSubscribedButton(btn)
+                return { isNowSubscribed, btnFound: !!btn }
+            })()
+        `)
+
+        return { success: checkResult.isNowSubscribed, message: checkResult.isNowSubscribed ? 'Successfully subscribed! ✓' : 'Subscription may have failed' }
+    }
 
     if (result?.dump) {
       console.log('[main] auto-subscribe dump', result.dump)
