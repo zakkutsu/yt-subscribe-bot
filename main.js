@@ -376,7 +376,7 @@ ipcMain.handle('auto-subscribe', async () => {
         await new Promise(r => setTimeout(r, randomDelay(1200, 2600)))
 
         // Find subscribe button
-        const subBtnResult = getSubscribeButton()
+        const subBtnResult = findSubscribeButton()
         if (subBtnResult && subBtnResult.found === null) {
           console.log('[yt debug] subscribe button candidates', JSON.stringify(subBtnResult.dump))
         }
