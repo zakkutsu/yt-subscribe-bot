@@ -2,14 +2,46 @@ let queue = []
 let index = 0
 let timer = null
 let autoSubscribeEnabled = false
+let smartModeEnabled = true
 let subscribeStatus = {}
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+function updateSmartModeButton() {
+  const button = document.getElementById('smart-mode-toggle')
+  if (!button) return
+
+  if (smartModeEnabled) {
+    button.textContent = 'Smart Mode: ON'
+    button.className = 'px-5 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 hover:border-emerald-300 transition-colors'
+  } else {
+    button.textContent = 'Smart Mode: OFF'
+    button.className = 'px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 hover:border-slate-300 transition-colors'
+  }
+}
+
+function toggleSmartMode() {
+  smartModeEnabled = !smartModeEnabled
+  updateSmartModeButton()
+
+  const status = document.getElementById('subscribe-status')
+  if (status) {
+    status.style.display = 'block'
+    status.className = smartModeEnabled
+      ? 'mb-4 p-4 rounded-xl border bg-emerald-50 border-emerald-200'
+      : 'mb-4 p-4 rounded-xl border bg-slate-50 border-slate-200'
+    status.textContent = smartModeEnabled
+      ? 'Smart mode enabled. START will auto-subscribe.'
+      : 'Smart mode disabled. START will open links for manual subscribe.'
+    status.style.color = smartModeEnabled ? '#065f46' : '#334155'
+  }
+}
+
 async function init() {
   queue = await window.api.loadData()
+  updateSmartModeButton()
   render()
 }
 
@@ -196,6 +228,11 @@ async function openNext() {
 
 function startQueue() {
   if (timer) clearTimeout(timer)
+
+  if (smartModeEnabled) {
+    autoSubscribe()
+    return
+  }
 
   runQueue()
 }

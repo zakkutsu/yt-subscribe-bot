@@ -106,8 +106,8 @@
 
             <!-- Specific Actions -->
             <div class="flex flex-wrap gap-3">
-                <button onclick="autoSubscribe()" class="px-5 py-2.5 text-sm font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 hover:border-rose-300 transition-colors">
-                    🤖 Smart Auto Subscribe
+                <button id="smart-mode-toggle" onclick="toggleSmartMode()" class="px-5 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 hover:border-emerald-300 transition-colors">
+                    Smart Mode: ON
                 </button>
             </div>
         </section>
@@ -117,7 +117,7 @@
             <h2 class="text-xl font-semibold text-slate-900 mb-4">Queue List</h2>
             
             <!-- Subscribe Status (conditional) -->
-            <div id="subscribe-status" class="mb-4 p-4 rounded-xl border hidden" style="display: none;"></div>
+            <div id="subscribe-status" class="mb-4 p-4 rounded-xl border hidden"></div>
 
             <!-- Queue List Container -->
             <div id="queue-container" class="bg-white rounded-2xl border border-slate-200 shadow-sm">
