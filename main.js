@@ -159,17 +159,19 @@ ipcMain.handle('check-subscribe', async () => {
         
         // Check if already subscribed (button text changed)
         const isSubscribed = isSubscribedButton(subBtn)
+        console.log('[yt debug] found button', dumpElement(subBtn))
         
         return {
           subscribed: isSubscribed ? 'yes' : 'no',
           buttonText: subBtn.textContent,
-          message: isSubscribed ? 'Already subscribed' : 'Not subscribed yet'
+          message: isSubscribed ? 'Already subscribed' : 'Not subscribed yet',
+          dump: [dumpElement(subBtn)]
         }
       })()
     `)
     
     if (result?.dump) {
-      console.log('[main] check-subscribe dump', result.dump)
+      console.log('[main] check-subscribe dump', JSON.stringify(result.dump, null, 2))
     }
     console.log('[main] check-subscribe result', result)
     return result
