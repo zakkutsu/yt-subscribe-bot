@@ -1,97 +1,103 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
-const path = require('path')
-const fs = require('fs')
+const { app, BrowserWindow, ipcMain } = require("electron");
+const path = require("path");
+const fs = require("fs");
 
-let mainWindow
-let ytWindow
+let mainWindow;
+let ytWindow;
 
-const DATA_PATH = path.join(__dirname, 'data.json')
+const DATA_PATH = path.join(__dirname, "data.json");
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
     height: 700,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
-    }
-  })
+      preload: path.join(__dirname, "preload.js"),
+    },
+  });
 
-  mainWindow.loadFile('index.html')
+  mainWindow.loadFile("index.html");
 }
 
-app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
-app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+app.commandLine.appendSwitch("disable-blink-features", "AutomationControlled");
+app.userAgentFallback =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
 
-app.whenReady().then(createWindow)
+app.whenReady().then(createWindow);
 
-ipcMain.handle('debug-log', (_, payload) => {
-  const message = payload?.message ?? 'debug'
-  const details = payload?.details
+ipcMain.handle("debug-log", (_, payload) => {
+  const message = payload?.message ?? "debug";
+  const details = payload?.details;
   if (details !== undefined) {
-    console.log(`[renderer] ${message}`, details)
+    console.log(`[renderer] ${message}`, details);
   } else {
-    console.log(`[renderer] ${message}`)
+    console.log(`[renderer] ${message}`);
   }
-  return true
-})
+  return true;
+});
 
 // 🔥 Open link in separate window (can be controlled)
-ipcMain.handle('open-link', async (_, url) => {
-  console.log('[main] open-link called', url)
+ipcMain.handle("open-link", async (_, url) => {
+  console.log("[main] open-link called", url);
 
   if (!ytWindow) {
     ytWindow = new BrowserWindow({
       width: 1200,
       height: 800,
       webPreferences: {
-        backgroundThrottling: false
-      }
-    })
+        backgroundThrottling: false,
+      },
+    });
 
-    ytWindow.webContents.on('console-message', (_, level, message, line, sourceId) => {
-      console.log(`[yt console] level=${level} line=${line} source=${sourceId} message=${message}`)
-    })
+    ytWindow.webContents.on(
+      "console-message",
+      (_, level, message, line, sourceId) => {
+        console.log(
+          `[yt console] level=${level} line=${line} source=${sourceId} message=${message}`,
+        );
+      },
+    );
 
-    ytWindow.on('closed', () => {
-      ytWindow = null
-    })
+    ytWindow.on("closed", () => {
+      ytWindow = null;
+    });
 
-    ytWindow.on('close', async () => {
+    ytWindow.on("close", async () => {
       if (ytWindow && ytWindow.webContents) {
         try {
-          await ytWindow.webContents.session.cookies.flushStore()
-          await ytWindow.webContents.session.flushStorageData()
+          await ytWindow.webContents.session.cookies.flushStore();
+          await ytWindow.webContents.session.flushStorageData();
         } catch (e) {}
       }
-    })
+    });
   }
 
   try {
-    await ytWindow.loadURL(url)
-    console.log('[main] open-link loaded successfully')
-    return { status: 'ok', message: 'Loaded' }
+    await ytWindow.loadURL(url);
+    console.log("[main] open-link loaded successfully");
+    return { status: "ok", message: "Loaded" };
   } catch (err) {
-    console.log('[main] open-link failed', err)
-    return { status: 'error', message: err.message }
+    console.log("[main] open-link failed", err);
+    return { status: "error", message: err.message };
   }
-})
+});
 
 // load & save data
-ipcMain.handle('load-data', () => {
-  if (!fs.existsSync(DATA_PATH)) return []
-  return JSON.parse(fs.readFileSync(DATA_PATH))
-})
+ipcMain.handle("load-data", () => {
+  if (!fs.existsSync(DATA_PATH)) return [];
+  return JSON.parse(fs.readFileSync(DATA_PATH));
+});
 
-ipcMain.handle('save-data', (_, data) => {
-  fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2))
-})
+ipcMain.handle("save-data", (_, data) => {
+  fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2));
+});
 
 // 🔍 Detect subscribe status
-ipcMain.handle('check-subscribe', async () => {
-  if (!ytWindow) return { status: 'error', message: 'YouTube window not open' }
+ipcMain.handle("check-subscribe", async () => {
+  if (!ytWindow) return { status: "error", message: "YouTube window not open" };
 
   try {
-    console.log('[main] check-subscribe started')
+    console.log("[main] check-subscribe started");
     const result = await ytWindow.webContents.executeJavaScript(`
       (async () => {
         const collectElements = (root, output, limit = 2000) => {
@@ -210,25 +216,28 @@ ipcMain.handle('check-subscribe', async () => {
           dump: [dumpElement(subBtn)]
         }
       })()
-    `)
-    
+    `);
+
     if (result?.dump) {
-      console.log('[main] check-subscribe dump', JSON.stringify(result.dump, null, 2))
+      console.log(
+        "[main] check-subscribe dump",
+        JSON.stringify(result.dump, null, 2),
+      );
     }
-    console.log('[main] check-subscribe result', result)
-    return result
+    console.log("[main] check-subscribe result", result);
+    return result;
   } catch (err) {
-    console.log('[main] check-subscribe failed', err)
-    return { status: 'error', message: err.message }
+    console.log("[main] check-subscribe failed", err);
+    return { status: "error", message: err.message };
   }
-})
+});
 
 // 📺 Auto watch video
-ipcMain.handle('watch-video', async () => {
-  if (!ytWindow) return { success: false, message: 'YouTube window not open' }
+ipcMain.handle("watch-video", async () => {
+  if (!ytWindow) return { success: false, message: "YouTube window not open" };
 
   try {
-    console.log('[main] watch-video started')
+    console.log("[main] watch-video started");
     const videoUrl = await ytWindow.webContents.executeJavaScript(`
         (() => {
             // Find all anchor tags that look like a video link
@@ -244,25 +253,25 @@ ipcMain.handle('watch-video', async () => {
             return null;
         })()
     `);
-    
+
     if (videoUrl) {
-        console.log('[main] navigating to video:', videoUrl)
-        await ytWindow.loadURL(videoUrl)
-        return { success: true, message: 'Watching video...' }
+      console.log("[main] navigating to video:", videoUrl);
+      await ytWindow.loadURL(videoUrl);
+      return { success: true, message: "Watching video..." };
     }
-    return { success: false, message: 'No video found on channel' }
+    return { success: false, message: "No video found on channel" };
   } catch (err) {
-    console.log('[main] watch-video failed', err)
-    return { success: false, message: err.message }
+    console.log("[main] watch-video failed", err);
+    return { success: false, message: err.message };
   }
-})
+});
 
 // 🤖 Humanoid auto-clicker
-ipcMain.handle('auto-subscribe', async () => {
-  if (!ytWindow) return { status: 'error', message: 'YouTube window not open' }
+ipcMain.handle("auto-subscribe", async () => {
+  if (!ytWindow) return { status: "error", message: "YouTube window not open" };
 
   try {
-    console.log('[main] auto-subscribe started')
+    console.log("[main] auto-subscribe started");
     const result = await ytWindow.webContents.executeJavaScript(`
       (async () => {
         const collectElements = (root, output, limit = 2000) => {
@@ -410,49 +419,79 @@ ipcMain.handle('auto-subscribe', async () => {
           rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
         }
       })()
-    `)
+    `);
 
-    if (result.status === 'not_found') return { success: false, message: result.message }
-    if (result.status === 'already_subscribed') return { success: false, message: result.message }
+    if (result.status === "not_found")
+      return { success: false, message: result.message };
+    if (result.status === "already_subscribed")
+      return { success: false, message: result.message };
 
-    if (result.status === 'ready' && result.rect) {
-        const { left, top, width, height } = result.rect
-        const btnX = left + width / 2 + (Math.random() * 10 - 5)
-        const btnY = top + height / 2 + (Math.random() * 6 - 3)
+    if (result.status === "ready" && result.rect) {
+      const { left, top, width, height } = result.rect;
+      const btnX = left + width / 2 + (Math.random() * 10 - 5);
+      const btnY = top + height / 2 + (Math.random() * 6 - 3);
 
-        // Human-like move function using sendInputEvent
-        const moveMouseHardware = async (sx, sy, ex, ey, duration = 800) => {
-            const steps = Math.max(12, Math.floor(duration / 12))
-            for (let i = 0; i < steps; i++) {
-                const progress = (i + 1) / steps
-                const ease = progress < 0.5 ? 2*progress*progress : -1 + (4 - 2*progress)*progress
-                
-                const mx = sx + (ex - sx) * ease + (Math.random() * 4 - 2)
-                const my = sy + (ey - sy) * ease + (Math.random() * 4 - 2)
+      // Human-like move function using sendInputEvent
+      const moveMouseHardware = async (sx, sy, ex, ey, duration = 800) => {
+        const steps = Math.max(12, Math.floor(duration / 12));
+        for (let i = 0; i < steps; i++) {
+          const progress = (i + 1) / steps;
+          const ease =
+            progress < 0.5
+              ? 2 * progress * progress
+              : -1 + (4 - 2 * progress) * progress;
 
-                ytWindow.webContents.sendInputEvent({ type: 'mouseMove', x: Math.round(mx), y: Math.round(my) })
-                
-                const wait = Math.max(8, Math.round((duration / steps) * (0.8 + Math.random() * 0.4)))
-                await new Promise(r => setTimeout(r, wait))
-            }
+          const mx = sx + (ex - sx) * ease + (Math.random() * 4 - 2);
+          const my = sy + (ey - sy) * ease + (Math.random() * 4 - 2);
+
+          ytWindow.webContents.sendInputEvent({
+            type: "mouseMove",
+            x: Math.round(mx),
+            y: Math.round(my),
+          });
+
+          const wait = Math.max(
+            8,
+            Math.round((duration / steps) * (0.8 + Math.random() * 0.4)),
+          );
+          await new Promise((r) => setTimeout(r, wait));
         }
+      };
 
-        const startX = Math.random() * 800
-        const startY = Math.random() * 600
+      const startX = Math.random() * 800;
+      const startY = Math.random() * 600;
 
-        await moveMouseHardware(startX, startY, btnX, btnY, 600 + Math.random() * 300)
-        await new Promise(r => setTimeout(r, 200 + Math.random() * 500))
+      await moveMouseHardware(
+        startX,
+        startY,
+        btnX,
+        btnY,
+        600 + Math.random() * 300,
+      );
+      await new Promise((r) => setTimeout(r, 200 + Math.random() * 500));
 
-        // Click!
-        ytWindow.webContents.sendInputEvent({ type: 'mouseDown', x: Math.round(btnX), y: Math.round(btnY), button: 'left', clickCount: 1 })
-        await new Promise(r => setTimeout(r, 50 + Math.random() * 150))
-        ytWindow.webContents.sendInputEvent({ type: 'mouseUp', x: Math.round(btnX), y: Math.round(btnY), button: 'left', clickCount: 1 })
+      // Click!
+      ytWindow.webContents.sendInputEvent({
+        type: "mouseDown",
+        x: Math.round(btnX),
+        y: Math.round(btnY),
+        button: "left",
+        clickCount: 1,
+      });
+      await new Promise((r) => setTimeout(r, 50 + Math.random() * 150));
+      ytWindow.webContents.sendInputEvent({
+        type: "mouseUp",
+        x: Math.round(btnX),
+        y: Math.round(btnY),
+        button: "left",
+        clickCount: 1,
+      });
 
-        // Wait for result
-        await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000))
+      // Wait for result
+      await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1000));
 
-        // Check result
-        const checkResult = await ytWindow.webContents.executeJavaScript(`
+      // Check result
+      const checkResult = await ytWindow.webContents.executeJavaScript(`
             (async () => {
                 const isSubscribedButton = (btn) => {
                     if (!btn) return false
@@ -530,18 +569,23 @@ ipcMain.handle('auto-subscribe', async () => {
 
                 return { isNowSubscribed, btnFound: !!btn, fallbackUsed: false }
             })()
-        `)
+        `);
 
-        return { success: checkResult.isNowSubscribed, message: checkResult.isNowSubscribed ? 'Successfully subscribed! ✓' : 'Subscription may have failed' }
+      return {
+        success: checkResult.isNowSubscribed,
+        message: checkResult.isNowSubscribed
+          ? "Successfully subscribed! ✓"
+          : "Subscription may have failed",
+      };
     }
 
     if (result?.dump) {
-      console.log('[main] auto-subscribe dump', result.dump)
+      console.log("[main] auto-subscribe dump", result.dump);
     }
-    console.log('[main] auto-subscribe result', result)
-    return result
+    console.log("[main] auto-subscribe result", result);
+    return result;
   } catch (err) {
-    console.log('[main] auto-subscribe failed', err)
-    return { success: false, message: 'Error: ' + err.message }
+    console.log("[main] auto-subscribe failed", err);
+    return { success: false, message: "Error: " + err.message };
   }
-})
+});

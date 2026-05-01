@@ -1,167 +1,245 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>YouTube Channel Queue</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
-        }
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+            },
+          },
+        },
+      };
     </script>
     <style>
-        /* Custom scrollbar for text area */
-        textarea::-webkit-scrollbar {
-            width: 8px;
-        }
-        textarea::-webkit-scrollbar-track {
-            background: #f1f5f9; 
-            border-radius: 4px;
-        }
-        textarea::-webkit-scrollbar-thumb {
-            background: #cbd5e1; 
-            border-radius: 4px;
-        }
-        textarea::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8; 
-        }
+      /* Custom scrollbar for text area */
+      textarea::-webkit-scrollbar {
+        width: 8px;
+      }
+      textarea::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+      }
+      textarea::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      textarea::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
     </style>
-</head>
-<body class="bg-slate-50 text-slate-800 min-h-screen p-4 md:p-8">
-
+  </head>
+  <body class="bg-slate-50 text-slate-800 min-h-screen p-4 md:p-8">
     <div class="max-w-4xl mx-auto space-y-6">
-        
-        <!-- Header -->
-        <header class="mb-8">
-            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-                YouTube Channel Queue Manager
-            </h1>
-            <p class="text-slate-500 mt-1 text-sm">Manage your YouTube channel queue and automate subscriptions effortlessly.</p>
-        </header>
+      <!-- Header -->
+      <header class="mb-8">
+        <h1
+          class="text-2xl md:text-3xl font-bold tracking-tight text-slate-900"
+        >
+          YouTube Channel Queue Manager
+        </h1>
+        <p class="text-slate-500 mt-1 text-sm">
+          Manage your YouTube channel queue and automate subscriptions
+          effortlessly.
+        </p>
+      </header>
 
-        <!-- Main Input Card -->
-        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6">
-            <label for="link-input" class="block text-sm font-medium text-slate-700 mb-2">Channel Links</label>
-            <div class="relative">
-                <textarea 
-                    id="link-input" 
-                    rows="6" 
-                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 block p-4 transition-colors placeholder-slate-400 resize-y" 
-                    placeholder="Paste one link per line..."
-                ></textarea>
-            </div>
-            
-            <!-- Input Actions -->
-            <div class="flex justify-end gap-3 mt-4">
-                <button onclick="clearQueue()" class="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors" title="Hapus semua antrean secara permanen">
-                    Clear All Queue
-                </button>
-                <button onclick="addLinks()" class="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
-                    Add to Queue
-                </button>
-            </div>
-        </section>
+      <!-- Main Input Card -->
+      <section
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6"
+      >
+        <label
+          for="link-input"
+          class="block text-sm font-medium text-slate-700 mb-2"
+          >Channel Links</label
+        >
+        <div class="relative">
+          <textarea
+            id="link-input"
+            rows="6"
+            class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 block p-4 transition-colors placeholder-slate-400 resize-y"
+            placeholder="Paste one link per line..."
+          ></textarea>
+        </div>
 
-        <!-- Control Panel Card -->
-        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6">
-            <h2 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Queue Control</h2>
+        <!-- Input Actions -->
+        <div class="flex justify-end gap-3 mt-4">
+          <button
+            onclick="clearQueue()"
+            class="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
+            title="Hapus semua antrean secara permanen"
+          >
+            Clear All Queue
+          </button>
+          <button
+            onclick="addLinks()"
+            class="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
+          >
+            Add to Queue
+          </button>
+        </div>
+      </section>
 
-            <div id="mode-badge" class="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border border-emerald-200 bg-emerald-50 text-emerald-700">
-                Smart Mode Active
-            </div>
-            
-            <div class="flex flex-wrap gap-x-4 gap-y-4">
-                
-                <!-- Playback Controls (Grouped) -->
-                <div class="flex items-center bg-slate-100/50 p-1 rounded-xl border border-slate-200">
-                    <button onclick="startQueue()" class="px-4 py-2 text-sm font-semibold text-slate-900 bg-white shadow-sm rounded-lg hover:text-blue-600 transition-colors">
-                        START
-                    </button>
-                    <button onclick="openNext()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
-                        NEXT
-                    </button>
-                    <button onclick="stopQueue()" class="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">
-                        STOP
-                    </button>
-                </div>
+      <!-- Control Panel Card -->
+      <section
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6"
+      >
+        <h2
+          class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4"
+        >
+          Queue Control
+        </h2>
 
-                <div class="w-px bg-slate-200 hidden sm:block"></div>
+        <div
+          id="mode-badge"
+          class="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border border-emerald-200 bg-emerald-50 text-emerald-700"
+        >
+          Smart Mode Active
+        </div>
 
-                <!-- Reset Controls -->
-                <div class="flex items-center gap-2">
-                    <button onclick="restartQueue()" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-                        Restart
-                    </button>
-                    <button onclick="resetIndex()" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-                        Reset Index
-                    </button>
-                </div>
-            </div>
+        <div class="flex flex-wrap gap-x-4 gap-y-4">
+          <!-- Playback Controls (Grouped) -->
+          <div
+            class="flex items-center bg-slate-100/50 p-1 rounded-xl border border-slate-200"
+          >
+            <button
+              onclick="startQueue()"
+              class="px-4 py-2 text-sm font-semibold text-slate-900 bg-white shadow-sm rounded-lg hover:text-blue-600 transition-colors"
+            >
+              START
+            </button>
+            <button
+              onclick="openNext()"
+              class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              NEXT
+            </button>
+            <button
+              onclick="stopQueue()"
+              class="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              STOP
+            </button>
+          </div>
 
-            <hr class="my-5 border-slate-200">
+          <div class="w-px bg-slate-200 hidden sm:block"></div>
 
-            <!-- Specific Actions & Settings -->
-            <div class="flex flex-col sm:flex-row gap-4 mt-2">
-                <button id="smart-mode-toggle" onclick="toggleSmartMode()" class="px-5 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 hover:border-emerald-300 transition-colors">
-                    Smart Mode: ON
-                </button>
-                
-                <div class="w-px h-10 bg-slate-200 hidden sm:block"></div>
+          <!-- Reset Controls -->
+          <div class="flex items-center gap-2">
+            <button
+              onclick="restartQueue()"
+              class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Restart
+            </button>
+            <button
+              onclick="resetIndex()"
+              class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Reset Index
+            </button>
+          </div>
+        </div>
 
-                <div class="flex items-center gap-3">
-                    <label for="speed-profile" class="text-sm font-medium text-slate-700 whitespace-nowrap">Interval Transisi:</label>
-                    <select id="speed-profile" onchange="updateSpeedWarning()" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 cursor-pointer shadow-sm">
-                        <option value="very-fast">Sangat Cepat (3-5s) ⚠️</option>
-                        <option value="fast">Cepat (5-10s) ⚠️</option>
-                        <option value="normal" selected>Normal (15-30s)</option>
-                        <option value="safe">Sangat Aman (30-60s)</option>
-                    </select>
-                </div>
+        <hr class="my-5 border-slate-200" />
 
-                <div class="w-px h-10 bg-slate-200 hidden sm:block"></div>
+        <!-- Specific Actions & Settings -->
+        <div class="flex flex-col sm:flex-row gap-4 mt-2">
+          <button
+            id="smart-mode-toggle"
+            onclick="toggleSmartMode()"
+            class="px-5 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 hover:border-emerald-300 transition-colors"
+          >
+            Smart Mode: ON
+          </button>
 
-                <div class="flex flex-col justify-center" id="watch-video-container">
-                    <label class="flex items-center gap-2 cursor-pointer group">
-                        <input type="checkbox" id="watch-video-toggle" class="w-4 h-4 text-emerald-600 bg-slate-100 border-slate-300 rounded focus:ring-emerald-500 focus:ring-2 cursor-pointer disabled:cursor-not-allowed">
-                        <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">Tonton Video (30s) 🛡️</span>
-                    </label>
-                    <span class="text-[10px] text-slate-500 mt-0.5 ml-6 italic">Sangat disarankan! Membuat pola klik Anda terlihat seperti manusia asli dan mencegah deteksi spam.</span>
-                </div>
-            </div>
-            
-            <p id="speed-warning" class="text-xs text-amber-700 hidden mt-3 bg-amber-50 border border-amber-200 p-2.5 rounded-lg font-medium">
-                ⚠️ <span class="font-bold">Peringatan Risiko:</span> Mode Cepat berpotensi lebih mudah dideteksi sebagai spam oleh sistem YouTube. Gunakan hanya untuk antrean pendek!
+          <div class="w-px h-10 bg-slate-200 hidden sm:block"></div>
+
+          <div class="flex items-center gap-3">
+            <label
+              for="speed-profile"
+              class="text-sm font-medium text-slate-700 whitespace-nowrap"
+              >Interval Transisi:</label
+            >
+            <select
+              id="speed-profile"
+              onchange="updateSpeedWarning()"
+              class="bg-white border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 cursor-pointer shadow-sm"
+            >
+              <option value="very-fast">Sangat Cepat (3-5s) ⚠️</option>
+              <option value="fast">Cepat (5-10s) ⚠️</option>
+              <option value="normal" selected>Normal (15-30s)</option>
+              <option value="safe">Sangat Aman (30-60s)</option>
+            </select>
+          </div>
+
+          <div class="w-px h-10 bg-slate-200 hidden sm:block"></div>
+
+          <div class="flex flex-col justify-center" id="watch-video-container">
+            <label class="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="checkbox"
+                id="watch-video-toggle"
+                class="w-4 h-4 text-emerald-600 bg-slate-100 border-slate-300 rounded focus:ring-emerald-500 focus:ring-2 cursor-pointer disabled:cursor-not-allowed"
+              />
+              <span
+                class="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors"
+                >Tonton Video (30s) 🛡️</span
+              >
+            </label>
+            <span class="text-[10px] text-slate-500 mt-0.5 ml-6 italic"
+              >Sangat disarankan! Membuat pola klik Anda terlihat seperti
+              manusia asli dan mencegah deteksi spam.</span
+            >
+          </div>
+        </div>
+
+        <p
+          id="speed-warning"
+          class="text-xs text-amber-700 hidden mt-3 bg-amber-50 border border-amber-200 p-2.5 rounded-lg font-medium"
+        >
+          ⚠️ <span class="font-bold">Peringatan Risiko:</span> Mode Cepat
+          berpotensi lebih mudah dideteksi sebagai spam oleh sistem YouTube.
+          Gunakan hanya untuk antrean pendek!
+        </p>
+      </section>
+
+      <!-- Queue List Section -->
+      <section class="mt-8">
+        <h2 class="text-xl font-semibold text-slate-900 mb-4">Queue List</h2>
+
+        <!-- Subscribe Status (conditional) -->
+        <div
+          id="subscribe-status"
+          class="mb-4 p-4 rounded-xl border hidden"
+        ></div>
+
+        <!-- Queue List Container -->
+        <div
+          id="queue-container"
+          class="bg-white rounded-2xl border border-slate-200 shadow-sm"
+        >
+          <div id="list" class="divide-y divide-slate-200">
+            <!-- Queue items will be rendered here -->
+          </div>
+          <div id="empty-state" class="p-8 text-center border-dashed">
+            <p class="text-slate-500 text-sm">
+              No queue items yet. Add links and click "Add to Queue".
             </p>
-        </section>
-
-        <!-- Queue List Section -->
-        <section class="mt-8">
-            <h2 class="text-xl font-semibold text-slate-900 mb-4">Queue List</h2>
-            
-            <!-- Subscribe Status (conditional) -->
-            <div id="subscribe-status" class="mb-4 p-4 rounded-xl border hidden"></div>
-
-            <!-- Queue List Container -->
-            <div id="queue-container" class="bg-white rounded-2xl border border-slate-200 shadow-sm">
-                <div id="list" class="divide-y divide-slate-200">
-                    <!-- Queue items will be rendered here -->
-                </div>
-                <div id="empty-state" class="p-8 text-center border-dashed">
-                    <p class="text-slate-500 text-sm">No queue items yet. Add links and click "Add to Queue".</p>
-                </div>
-            </div>
-        </section>
-
+          </div>
+        </div>
+      </section>
     </div>
 
     <script src="renderer.js"></script>
-</body>
+  </body>
 </html>
