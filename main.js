@@ -22,7 +22,7 @@ function createWindow() {
 app.whenReady().then(createWindow)
 
 // 🔥 Open link in separate window (can be controlled)
-ipcMain.handle('open-link', (_, url) => {
+ipcMain.handle('open-link', async (_, url) => {
   if (!ytWindow) {
     ytWindow = new BrowserWindow({
       width: 1200,
@@ -34,7 +34,12 @@ ipcMain.handle('open-link', (_, url) => {
     })
   }
 
-  ytWindow.loadURL(url)
+  try {
+    await ytWindow.loadURL(url)
+    return { status: 'ok', message: 'Loaded' }
+  } catch (err) {
+    return { status: 'error', message: err.message }
+  }
 })
 
 // load & save data

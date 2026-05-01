@@ -4,6 +4,10 @@ let timer = null
 let autoSubscribeEnabled = false
 let subscribeStatus = {}
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 async function init() {
   queue = await window.api.loadData()
   render()
@@ -77,71 +81,115 @@ async function autoSubscribe() {
   const status = document.getElementById('subscribe-status')
   if (!status) return
 
+  if (autoSubscribeEnabled) {
+    status.style.display = 'block'
+    status.className = 'mb-4 p-4 rounded-xl border bg-amber-50 border-amber-200'
+    status.textContent = '⚠️ Smart Auto Subscribe is already running.'
+    status.style.color = '#92400e'
+    return
+  }
+
+  if (queue.length === 0) {
+    status.style.display = 'block'
+    status.className = 'mb-4 p-4 rounded-xl border bg-slate-50 border-slate-200'
+    status.textContent = 'No queue items to process.'
+    status.style.color = '#475569'
+    return
+  }
+
+  autoSubscribeEnabled = true
   status.style.display = 'block'
   status.className = 'mb-4 p-4 rounded-xl border bg-blue-50 border-blue-200'
-  status.textContent = '🔍 Checking subscribe status...'
+  status.textContent = '🔍 Starting smart queue processing...'
   status.style.color = '#1e40af'
 
   try {
-    // Step 1: Check subscription status first
-    const checkResult = await window.api.checkSubscribe()
-    
-    if (checkResult.status === 'error') {
-      status.className = 'mb-4 p-4 rounded-xl border bg-red-50 border-red-200'
-      status.textContent = '❌ ' + checkResult.message
-      status.style.color = '#991b1b'
-      return
-    }
-
-    // Step 2: If already subscribed, skip
-    if (checkResult.subscribed === 'yes') {
-      status.className = 'mb-4 p-4 rounded-xl border bg-emerald-50 border-emerald-200'
-      status.textContent = '✅ Already subscribed! Skipping...'
-      status.style.color = '#065f46'
-      
-      if (index < queue.length) {
-        subscribeStatus[queue[index]] = 'subscribed'
-      }
+    for (let i = index; i < queue.length && autoSubscribeEnabled; i++) {
+      index = i
       render()
-      return
-    }
 
-    // Step 3: Not subscribed, proceed with auto subscribe
-    status.className = 'mb-4 p-4 rounded-xl border bg-violet-50 border-violet-200'
-    status.textContent = '🤖 Auto-subscribing... (humanoid mode)'
-    status.style.color = '#5b21b6'
+      const link = queue[i]
+      status.className = 'mb-4 p-4 rounded-xl border bg-blue-50 border-blue-200'
+      status.textContent = `🔗 Opening ${i + 1} of ${queue.length}...`
+      status.style.color = '#1e40af'
 
-    const result = await window.api.autoSubscribe()
-    
-    if (result.success) {
-      status.className = 'mb-4 p-4 rounded-xl border bg-emerald-50 border-emerald-200'
-      status.textContent = '✅ ' + result.message
-      status.style.color = '#065f46'
-      
-      if (index < queue.length) {
-        subscribeStatus[queue[index]] = 'subscribed'
+      const openResult = await window.api.openLink(link)
+      if (openResult?.status === 'error') {
+        subscribeStatus[link] = 'not-subscribed'
+        status.className = 'mb-4 p-4 rounded-xl border bg-red-50 border-red-200'
+        status.textContent = '❌ ' + openResult.message
+        status.style.color = '#991b1b'
+        render()
+        continue
       }
-    } else {
-      status.className = 'mb-4 p-4 rounded-xl border bg-amber-50 border-amber-200'
-      status.textContent = '⚠️ ' + result.message
-      status.style.color = '#92400e'
+
+      await sleep(3500)
+
+      status.className = 'mb-4 p-4 rounded-xl border bg-blue-50 border-blue-200'
+      status.textContent = `🔍 Checking subscribe status for item ${i + 1}...`
+      status.style.color = '#1e40af'
+
+      const checkResult = await window.api.checkSubscribe()
+      if (checkResult.status === 'error') {
+        subscribeStatus[link] = 'not-subscribed'
+        status.className = 'mb-4 p-4 rounded-xl border bg-red-50 border-red-200'
+        status.textContent = '❌ ' + checkResult.message
+        status.style.color = '#991b1b'
+        render()
+        continue
+      }
+
+      if (checkResult.subscribed === 'yes') {
+        subscribeStatus[link] = 'subscribed'
+        status.className = 'mb-4 p-4 rounded-xl border bg-emerald-50 border-emerald-200'
+        status.textContent = `✅ Already subscribed for item ${i + 1}.`
+        status.style.color = '#065f46'
+        render()
+        await sleep(randomDelay())
+        continue
+      }
+
+      status.className = 'mb-4 p-4 rounded-xl border bg-violet-50 border-violet-200'
+      status.textContent = `🤖 Auto-subscribing item ${i + 1}...`
+      status.style.color = '#5b21b6'
+
+      const result = await window.api.autoSubscribe()
+      if (result.success) {
+        subscribeStatus[link] = 'subscribed'
+        status.className = 'mb-4 p-4 rounded-xl border bg-emerald-50 border-emerald-200'
+        status.textContent = `✅ ${result.message}`
+        status.style.color = '#065f46'
+      } else {
+        subscribeStatus[link] = 'not-subscribed'
+        status.className = 'mb-4 p-4 rounded-xl border bg-amber-50 border-amber-200'
+        status.textContent = `⚠️ ${result.message}`
+        status.style.color = '#92400e'
+      }
+
+      render()
+      await sleep(randomDelay())
     }
-    
+
+    index = queue.length
+    status.className = 'mb-4 p-4 rounded-xl border bg-slate-50 border-slate-200'
+    status.textContent = 'Done processing queue.'
+    status.style.color = '#334155'
     render()
   } catch (err) {
     status.className = 'mb-4 p-4 rounded-xl border bg-red-50 border-red-200'
     status.textContent = '❌ Error: ' + err.message
     status.style.color = '#991b1b'
+  } finally {
+    autoSubscribeEnabled = false
   }
 }
 
-function openNext() {
+async function openNext() {
   if (index >= queue.length) return
 
   const link = queue[index]
 
-  window.api.openLink(link)
-
+  await window.api.openLink(link)
   index++
   render()
 }
@@ -152,10 +200,10 @@ function startQueue() {
   runQueue()
 }
 
-function runQueue() {
+async function runQueue() {
   if (index >= queue.length) return
 
-  openNext()
+  await openNext()
 
   const delay = randomDelay()
 
@@ -176,6 +224,8 @@ function stopQueue() {
     clearTimeout(timer)
     timer = null
   }
+
+  autoSubscribeEnabled = false
 }
 
 function restartQueue() {
