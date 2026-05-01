@@ -73,57 +73,44 @@ function render() {
   })
 }
 
-async function checkSubscribe() {
-  const status = document.getElementById('subscribe-status')
-  if (!status) return
-
-  status.style.display = 'block'
-  status.className = 'mb-4 p-4 rounded-xl border bg-blue-50 border-blue-200'
-  status.textContent = '⏳ Checking...'
-  status.style.color = '#1e40af'
-
-  try {
-    const result = await window.api.checkSubscribe()
-    
-    if (result.status === 'error') {
-      status.className = 'mb-4 p-4 rounded-xl border bg-red-50 border-red-200'
-      status.textContent = '❌ ' + result.message
-      status.style.color = '#991b1b'
-    } else {
-      const isSubscribed = result.subscribed === 'yes'
-      if (isSubscribed) {
-        status.className = 'mb-4 p-4 rounded-xl border bg-emerald-50 border-emerald-200'
-        status.textContent = '✅ Sudah Subscribe'
-        status.style.color = '#065f46'
-      } else {
-        status.className = 'mb-4 p-4 rounded-xl border bg-rose-50 border-rose-200'
-        status.textContent = '🔴 Belum Subscribe'
-        status.style.color = '#be123c'
-      }
-      
-      // Save status
-      if (index < queue.length) {
-        subscribeStatus[queue[index]] = isSubscribed ? 'subscribed' : 'not-subscribed'
-      }
-      render()
-    }
-  } catch (err) {
-    status.className = 'mb-4 p-4 rounded-xl border bg-red-50 border-red-200'
-    status.textContent = '❌ Error: ' + err.message
-    status.style.color = '#991b1b'
-  }
-}
-
 async function autoSubscribe() {
   const status = document.getElementById('subscribe-status')
   if (!status) return
 
   status.style.display = 'block'
-  status.className = 'mb-4 p-4 rounded-xl border bg-violet-50 border-violet-200'
-  status.textContent = '🤖 Auto-subscribing... (humanoid mode)'
-  status.style.color = '#5b21b6'
+  status.className = 'mb-4 p-4 rounded-xl border bg-blue-50 border-blue-200'
+  status.textContent = '🔍 Checking subscribe status...'
+  status.style.color = '#1e40af'
 
   try {
+    // Step 1: Cek status subscribe dulu
+    const checkResult = await window.api.checkSubscribe()
+    
+    if (checkResult.status === 'error') {
+      status.className = 'mb-4 p-4 rounded-xl border bg-red-50 border-red-200'
+      status.textContent = '❌ ' + checkResult.message
+      status.style.color = '#991b1b'
+      return
+    }
+
+    // Step 2: Jika sudah subscribe, skip
+    if (checkResult.subscribed === 'yes') {
+      status.className = 'mb-4 p-4 rounded-xl border bg-emerald-50 border-emerald-200'
+      status.textContent = '✅ Sudah subscribe! Skip...'
+      status.style.color = '#065f46'
+      
+      if (index < queue.length) {
+        subscribeStatus[queue[index]] = 'subscribed'
+      }
+      render()
+      return
+    }
+
+    // Step 3: Belum subscribe, proceed dengan auto subscribe
+    status.className = 'mb-4 p-4 rounded-xl border bg-violet-50 border-violet-200'
+    status.textContent = '🤖 Auto-subscribing... (humanoid mode)'
+    status.style.color = '#5b21b6'
+
     const result = await window.api.autoSubscribe()
     
     if (result.success) {
@@ -157,11 +144,6 @@ function openNext() {
 
   index++
   render()
-  
-  // Auto-check subscribe status setelah buka link
-  setTimeout(() => {
-    checkSubscribe()
-  }, 3000)
 }
 
 function startQueue() {
