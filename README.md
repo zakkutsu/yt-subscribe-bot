@@ -1,6 +1,6 @@
 # GhostSub (YouTube Channel Queue Manager)
 
-Aplikasi desktop berbasis Electron untuk mengotomatiskan antrean *subscribe* ke banyak channel YouTube sekaligus. Dilengkapi dengan teknologi *stealth* tingkat lanjut dan simulasi gerakan *mouse* (*humanoid clicker*) untuk menghindari deteksi anti-bot dari YouTube.
+Aplikasi desktop berbasis Electron untuk mengotomatiskan antrean *subscribe* ke banyak channel YouTube sekaligus. Dilengkapi dengan fitur *stealth* dan simulasi gerakan *mouse* (*humanoid clicker*) untuk menghindari deteksi anti-bot dari YouTube.
 
 ![Electron](https://img.shields.io/badge/Electron-191970?style=flat-square&logo=Electron&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-43853D?style=flat-square&logo=node.js&logoColor=white)
